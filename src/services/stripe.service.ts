@@ -130,7 +130,8 @@ export const createPaymentLink = async (
 export const stripeWebhook = async (req: Request, res: Response) => {
   {
     console.log("stripe webhook", req.body);
-    const endpointSecret = "whsec_2kJGAf8onUayqo96qwWfOdcHPKACNCru"; // STRIPE_WH_SECRET;
+    // Remove old, deprecated secret
+    const endpointSecret = ""; // STRIPE_WH_SECRET;
     try {
       const sig = req.headers["stripe-signature"];
       const body = req.body;
