@@ -1,0 +1,57 @@
+services:
+  dg-marketplace-mongo:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    container_name: mongo-db
+    restart: always
+    logging:
+      options:
+        max-size: 0.5g
+    env_file:
+      - .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-entrypoint/:/docker-entrypoint-initdb.d/
+  dg-live-marketplace-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - dg-marketplace-v2:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+  dg-live-marketplace-app:
+    build: .
+    ports:
+      - "${PORT}:${PORT}" # Server port from .env
+      - "${WS_PORT}:${WS_PORT}" # WebSocket port from .env
+      - "9229:9229" # Expose Node.js debug port
+      - "${PROXY_PORT}:${PROXY_PORT}"
+    env_file:
+      - .env
+    command:
+      [
+        "./wait-for-it.sh",
+        "-t",
+        "120",
+        "dg-live-marketplace-db:3306",
+        "--",
+        "npm",
+        "run",
+        "start",
+      ]
+    depends_on:
+      - dg-live-marketplace-db
+volumes:
+  dg-marketplace-v2:
+    driver: local
+  mongo-data:
+    driver: local
